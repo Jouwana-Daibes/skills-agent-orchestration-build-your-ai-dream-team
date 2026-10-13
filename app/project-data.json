@@ -1,0 +1,25 @@
+{
+  "projects": [
+    {
+      "name": "Northstar onboarding",
+      "owner": "Maya Chen",
+      "status": "In progress",
+      "recentActivity": "Updated the welcome flow and shared a prototype",
+      "priority": "High"
+    },
+    {
+      "name": "Atlas reporting",
+      "owner": "Jordan Lee",
+      "status": "On track",
+      "recentActivity": "Reviewed this week's analytics with the team",
+      "priority": "Medium"
+    },
+    {
+      "name": "Field notes refresh",
+      "owner": "Sam Rivera",
+      "status": "Needs attention",
+      "recentActivity": "Gathering feedback from the pilot group",
+      "priority": "Low"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A clear, at-a-glance view of project progress and priorities.">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Project Pulse home">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span>Project Pulse</span>
+      </a>
+      <p class="header-note">A shared view of what’s moving</p>
+    </header>
+
+    <main class="dashboard">
+      <section class="dashboard-intro" aria-labelledby="page-title">
+        <p class="eyebrow">Portfolio overview</p>
+        <h1 id="page-title">Projects at a glance</h1>
+        <p class="intro-copy">See the latest activity, ownership, and priority across your projects.</p>
+      </section>
+
+      <section class="projects-section" aria-labelledby="projects-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Your workspace</p>
+            <h2 id="projects-heading">All projects</h2>
+          </div>
+          <p id="project-count" class="project-count" aria-live="polite"></p>
+        </div>
+
+        <p id="loading-state" class="message-state" role="status">Loading projects…</p>
+        <p id="error-state" class="message-state message-error" role="alert" hidden></p>
+        <p id="data-warning" class="message-state message-warning" role="status" hidden></p>
+        <p id="empty-state" class="message-state" role="status" hidden>No projects to show yet. Add a project to your portfolio to get started.</p>
+        <div id="project-list" class="project-list" aria-label="Project cards"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Project Pulse <span aria-hidden="true">·</span> Illustrative sample data, not verified project facts</p>
+    </footer>
+
+    <script>
+      const projectList = document.getElementById("project-list");
+      const loadingState = document.getElementById("loading-state");
+      const errorState = document.getElementById("error-state");
+      const dataWarning = document.getElementById("data-warning");
+      const emptyState = document.getElementById("empty-state");
+      const projectCount = document.getElementById("project-count");
+      const requiredFields = ["name", "owner", "status", "recentActivity", "priority"];
+
+      function setVisible(element, visible) {
+        element.hidden = !visible;
+      }
+
+      function isCompleteProject(project) {
+        return project !== null &&
+          typeof project === "object" &&
+          !Array.isArray(project) &&
+          requiredFields.every((field) =>
+            typeof project[field] === "string" && project[field].trim().length > 0
+          );
+      }
+
+      function addText(parent, tagName, className, text) {
+        const element = document.createElement(tagName);
+        if (className) element.className = className;
+        element.textContent = text;
+        parent.append(element);
+        return element;
+      }
+
+      function createProjectCard(project, index) {
+        const card = document.createElement("article");
+        card.className = "project-card";
+
+        const cardHeader = document.createElement("div");
+        cardHeader.className = "project-card-header";
+        const title = addText(cardHeader, "h3", "project-name", project.name.trim());
+        card.append(cardHeader);
+
+        const owner = addText(card, "p", "project-owner", project.owner.trim());
+        const ownerLabel = document.createElement("span");
+        ownerLabel.className = "visually-hidden";
+        ownerLabel.textContent = "Owner: ";
+        owner.prepend(ownerLabel);
+
+        const details = document.createElement("dl");
+        details.className = "project-details";
+
+        addText(details, "dt", "", "Status");
+        const statusValue = addText(details, "dd", "project-status", project.status.trim());
+        statusValue.setAttribute("aria-label", `Status: ${project.status.trim()}`);
+
+        addText(details, "dt", "", "Recent activity");
+        addText(details, "dd", "project-activity", project.recentActivity.trim());
+
+        addText(details, "dt", "", "Priority");
+        const priorityValue = addText(details, "dd", "project-priority", project.priority.trim());
+        priorityValue.setAttribute("aria-label", `Priority: ${project.priority.trim()}`);
+
+        card.append(details);
+        title.id = `project-${index + 1}-title`;
+        card.setAttribute("aria-labelledby", title.id);
+        return card;
+      }
+
+      async function loadProjects() {
+        try {
+          const response = await fetch("project-data.json");
+          if (!response.ok) {
+            throw new Error(`The project data could not be loaded (HTTP ${response.status}).`);
+          }
+
+          let data;
+          try {
+            data = JSON.parse(await response.text());
+          } catch {
+            throw new Error("The project data file could not be read because it contains invalid JSON.");
+          }
+
+          if (data === null || typeof data !== "object" || !Array.isArray(data.projects)) {
+            throw new Error('The project data is invalid. It must contain a "projects" array.');
+          }
+
+          const validProjects = data.projects.filter(isCompleteProject);
+          const incompleteCount = data.projects.length - validProjects.length;
+          projectList.replaceChildren(...validProjects.map(createProjectCard));
+          setVisible(loadingState, false);
+
+          if (incompleteCount > 0) {
+            dataWarning.textContent = `${incompleteCount} incomplete ${incompleteCount === 1 ? "project record was" : "project records were"} skipped. Each project needs a name, owner, status, recent activity, and priority.`;
+            setVisible(dataWarning, true);
+          }
+
+          if (validProjects.length === 0) {
+            setVisible(emptyState, true);
+          } else {
+            projectCount.textContent = `${validProjects.length} ${validProjects.length === 1 ? "project" : "projects"}`;
+          }
+        } catch (error) {
+          setVisible(loadingState, false);
+          errorState.textContent = error instanceof Error
+            ? error.message
+            : "Projects could not be loaded. Please try again later.";
+          setVisible(errorState, true);
+        }
+      }
+
+      loadProjects();
+    </script>
+  </body>
+</html>
